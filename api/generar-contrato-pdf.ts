@@ -13,8 +13,8 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
-import { buildContractHTML } from "../src/contrato";
-import type { Socio, Tutor } from "../src/types";
+import { buildContractHTML } from "../src/contrato.js";
+import type { Socio, Tutor } from "../src/types.js";
 
 const VENTANA_DESCARGA_MS = 15 * 60 * 1000; // 15 minutos
 
