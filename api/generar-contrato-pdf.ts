@@ -73,14 +73,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   let browser;
   try {
+    chromium.setHeadlessMode = true;
+    chromium.setGraphicsMode = false;
+
     browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
-      headless: true,
+      headless: chromium.headless as boolean | "shell",
     });
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle0" });
+    // El HTML es autocontenido (estilos inline, firma como data URI), así
+    // que no hay recursos externos que esperar — "load" es suficiente.
+    await page.setContent(html, { waitUntil: "load" });
     const pdf = await page.pdf({
       format: "letter",
       printBackground: true,
