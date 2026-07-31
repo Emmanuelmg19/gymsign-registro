@@ -39,40 +39,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-  const { data: socioData, error: socioError } = await supabase
-    .from("socios").select("*").eq("id", socio_id).single();
-
-  if (socioError || !socioData) {
-    res.status(404).json({ error: "Socio no encontrado." });
-    return;
-  }
-  const socio = socioData as Socio;
-
-  const creadoHaceMs = Date.now() - new Date(socio.creado_en).getTime();
-  if (creadoHaceMs > VENTANA_DESCARGA_MS) {
-    res.status(403).json({ error: "Este enlace de descarga ya expiró. Pide ayuda al staff para obtener tu contrato desde el panel." });
-    return;
-  }
-
-  let tutor: Tutor | null = null;
-  if (socio.es_menor && socio.tutor_id) {
-    const { data } = await supabase.from("tutores").select("*").eq("id", socio.tutor_id).single();
-    tutor = data as Tutor | null;
-  }
-
-  let firmaDataUrl: string | null = null;
-  if (socio.firma_path) {
-    const { data } = await supabase.storage.from("firmas").download(socio.firma_path);
-    if (data) {
-      const buf = Buffer.from(await data.arrayBuffer());
-      firmaDataUrl = `data:image/png;base64,${buf.toString("base64")}`;
-    }
-  }
-
-  const html = buildContractHTML(socio, tutor, firmaDataUrl);
-
   let browser;
   try {
+    const { data: socioData, error: socioError } = await supabase
+      .from("socios").select("*").eq("id", socio_id).single();
+
+    if (socioError || !socioData) {
+      res.status(404).json({ error: "Socio no encontrado." });
+      return;
+    }
+    const socio = socioData as Socio;
+
+    const creadoHaceMs = Date.now() - new Date(socio.creado_en).getTime();
+    if (creadoHaceMs > VENTANA_DESCARGA_MS) {
+      res.status(403).json({ error: "Este enlace de descarga ya expiró. Pide ayuda al staff para obtener tu contrato desde el panel." });
+      return;
+    }
+
+    let tutor: Tutor | null = null;
+    if (socio.es_menor && socio.tutor_id) {
+      const { data } = await supabase.from("tutores").select("*").eq("id", socio.tutor_id).single();
+      tutor = data as Tutor | null;
+    }
+
+    let firmaDataUrl: string | null = null;
+    if (socio.firma_path) {
+      const { data } = await supabase.storage.from("firmas").download(socio.firma_path);
+      if (data) {
+        const buf = Buffer.from(await data.arrayBuffer());
+        firmaDataUrl = `data:image/png;base64,${buf.toString("base64")}`;
+      }
+    }
+
+    const html = buildContractHTML(socio, tutor, firmaDataUrl);
+
     chromium.setHeadlessMode = true;
     chromium.setGraphicsMode = false;
 
@@ -96,7 +96,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader("Content-Disposition", `attachment; filename="Contrato_${socio.folio}.pdf"`);
     res.status(200).send(pdf);
   } catch (err: any) {
-    res.status(500).json({ error: `No se pudo generar el PDF: ${err?.message || "error desconocido"}` });
+    console.error("generar-contrato-pdf falló:", err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: `No se pudo generar el PDF: ${err?.message || "error desconocido"}` });
+    }
   } finally {
     if (browser) await browser.close();
   }
