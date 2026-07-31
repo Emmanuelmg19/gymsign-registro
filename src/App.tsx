@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { supabase } from "./supabaseClient";
 import type { EstadoMX, Plan, Socio, TipoIdentificacion, Tutor } from "./types";
 import { ESTADOS_MX } from "./types";
-import { GYM_NOMBRE, buildAvisoPrivacidad, buildConsentimientoAdulto, buildConsentimientoMenor, buildContractHTML, fechaContratoMX } from "./contrato";
+import { GYM_NOMBRE, buildAvisoPrivacidad, buildConsentimientoAdulto, buildConsentimientoMenor, fechaContratoMX } from "./contrato";
 
 const STEPS = ["Datos del Socio", "Contrato & T&C", "Firma Digital", "Confirmación"];
 
@@ -290,26 +290,11 @@ export default function App() {
     }
   };
 
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+
 
   const nombreCompleto = () => [form.nombre, form.apellidoPaterno, form.apellidoMaterno].filter(Boolean).join(" ");
 
-  const buildContractHTMLLocal = () => {
-    if (!socioGuardado) return "";
-    return buildContractHTML(socioGuardado, savedTutor, signatureData);
-  };
 
-  useEffect(() => {
-    if (showContract && socioGuardado) {
-      const html = buildContractHTMLLocal();
-      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      setBlobUrl(url);
-      return () => URL.revokeObjectURL(url);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showContract, socioGuardado]);
 
   const [descargandoPdf, setDescargandoPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
@@ -342,22 +327,6 @@ export default function App() {
     }
   };
 
-  const handleCopyToClipboard = async () => {
-    const html = buildContractHTMLLocal();
-    try {
-      const item = new (window as any).ClipboardItem({
-        "text/html": new Blob([html], { type: "text/html" }),
-        "text/plain": new Blob([html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ")], { type: "text/plain" }),
-      });
-      await navigator.clipboard.write([item]);
-    } catch {
-      try { await navigator.clipboard.writeText(html); } catch { /* noop */ }
-    }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
-  };
-
-  const filename = socioGuardado ? `Contrato_${form.nombre}_${form.apellidoPaterno}_${socioGuardado.folio}.html` : "contrato.html";
 
   const reset = () => {
     setStep(0); setForm(initialForm); setAccepted(false);
@@ -381,16 +350,7 @@ export default function App() {
             style={{ padding: "8px 14px", border: "1px solid #4b5563", borderRadius: 8, background: "transparent", color: "#d1d5db", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
             + Nuevo
           </button>
-          <button onClick={handleCopyToClipboard}
-            style={{ padding: "8px 14px", border: "none", borderRadius: 8, background: copied ? "#10b981" : "#3b82f6", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "background 0.2s" }}>
-            {copied ? "✓ ¡Copiado!" : "📋 Copiar contrato"}
-          </button>
-          {blobUrl && (
-            <a href={blobUrl} target="_blank" rel="noopener noreferrer" download={filename}
-              style={{ padding: "8px 18px", border: "none", borderRadius: 8, background: "#6b7280", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
-              🖨️ Abrir e Imprimir (HTML)
-            </a>
-          )}
+
           <button onClick={descargarPDF} disabled={descargandoPdf}
             style={{ padding: "8px 18px", border: "none", borderRadius: 8, background: descargandoPdf ? "#9ca3af" : "#10b981", color: "#fff", fontSize: 13, fontWeight: 700, cursor: descargandoPdf ? "default" : "pointer" }}>
             {descargandoPdf ? "⏳ Generando…" : "📄 Descargar PDF"}
@@ -404,13 +364,6 @@ export default function App() {
         </div>
       )}
 
-      <div className="no-print" style={{ background: "#eff6ff", borderBottom: "1px solid #bfdbfe", padding: "14px 20px" }}>
-        <p style={{ margin: 0, fontSize: 13, color: "#1e40af", textAlign: "center", lineHeight: 1.5 }}>
-          <strong>💡 Dos formas de guardar como PDF:</strong><br/>
-          <strong>Opción 1:</strong> Clic en <strong>"Abrir e Imprimir como PDF"</strong> → en la nueva pestaña presiona el botón negro de impresión → "Guardar como PDF".<br/>
-          <strong>Opción 2:</strong> Clic en <strong>"Copiar contrato"</strong> → pega (Ctrl+V) en Word o Google Docs → "Guardar como PDF".
-        </p>
-      </div>
 
       <div id="contract-print" style={{ maxWidth: 760, margin: "0 auto", background: "#fff", borderRadius: 12, overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.08)", marginTop: 8, marginBottom: 32 }}>
         <div style={{ background: "#111827", padding: "24px 32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
