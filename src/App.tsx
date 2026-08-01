@@ -53,7 +53,7 @@ interface FormState {
   tipoIdentificacion: TipoIdentificacion; numeroIdentificacion: string;
   direccion: string; estado: EstadoMX; municipio: string;
   contactoEmergencia: string; telefonoEmergencia: string;
-  plan: Plan; padecimiento: string;
+  plan: Plan; incluyeInscripcion: boolean; promocionPagoPuntual: boolean; padecimiento: string;
   tutorNombre: string; tutorApellido: string; tutorTelefono: string; tutorParentesco: string;
   tutorTipoIdentificacion: TipoIdentificacion; tutorNumeroIdentificacion: string;
 }
@@ -65,7 +65,7 @@ const initialForm: FormState = {
   tipoIdentificacion: "INE", numeroIdentificacion: "",
   direccion: "", estado: "Hidalgo", municipio: "",
   contactoEmergencia: "", telefonoEmergencia: "",
-  plan: "Mensual", padecimiento: "",
+  plan: "Mensual", incluyeInscripcion: false, promocionPagoPuntual: false, padecimiento: "",
   tutorNombre: "", tutorApellido: "", tutorTelefono: "", tutorParentesco: "",
   tutorTipoIdentificacion: "INE", tutorNumeroIdentificacion: "",
 };
@@ -203,6 +203,18 @@ export default function App() {
     setErrors(ev => ({ ...ev, [name]: "" }));
   };
 
+  const handleCheckboxChange = (name: "incluyeInscripcion" | "promocionPagoPuntual") => {
+    setForm(f => ({ ...f, [name]: !f[name] }));
+  };
+
+  const planLabel = () => {
+    const extras = [
+      form.incluyeInscripcion ? "Inscripción" : null,
+      form.promocionPagoPuntual ? "Promoción por pago puntual" : null,
+    ].filter(Boolean);
+    return extras.length ? `${form.plan} (+ ${extras.join(", ")})` : form.plan;
+  };
+
   const checkDuplicado = async () => {
     if (!form.email.trim() && !form.telefono.trim()) return;
     setCheckingDup(true);
@@ -258,6 +270,8 @@ export default function App() {
         p_telefono_emergencia: form.telefonoEmergencia.trim() || null,
         p_padecimiento: form.padecimiento.trim() || null,
         p_plan: form.plan,
+        p_incluye_inscripcion: form.incluyeInscripcion,
+        p_promocion_pago_puntual: form.promocionPagoPuntual,
         p_contrato_aceptado: true,
         p_firma_path: firmaPath,
         p_tutor: esMenor
@@ -388,7 +402,7 @@ export default function App() {
               ["Correo electrónico", form.email],
               ["Teléfono", form.telefono],
               ["Fecha de nacimiento", formatoFechaMX(form.fechaNacimiento)],
-              ["Plan contratado", form.plan],
+              ["Plan contratado", planLabel()],
               ["Dirección", form.direccion || "—"],
               ["Municipio / Estado", `${form.municipio || "—"}, ${form.estado}`],
               ["Nombre de contacto de emergencia", form.contactoEmergencia ? `${form.contactoEmergencia} – ${form.telefonoEmergencia}` : "—"],
@@ -442,7 +456,7 @@ export default function App() {
               <p style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 10 }}>Fecha y hora de firma</p>
               <p style={{ fontSize: 16, fontWeight: 700, color: "#111827", margin: "0 0 4px" }}>{dateStr}</p>
               <p style={{ fontSize: 13, color: "#374151", margin: "0 0 8px" }}>{timeStr} hrs</p>
-              <p style={{ fontSize: 12, color: "#6b7280", margin: 0 }}>Plan: {form.plan}</p>
+              <p style={{ fontSize: 12, color: "#6b7280", margin: 0 }}>Plan: {planLabel()}</p>
             </div>
           </div>
 
@@ -550,7 +564,17 @@ export default function App() {
               </div>
             )}
 
-            <Field label="Plan" name="plan" options={["Mensual","Inscripción","Promoción por pago puntual","Semana","Quincena","Visita"]} value={form.plan} onChange={handleFieldChange} />
+            <Field label="Plan" name="plan" options={["Mensual","Semana","Quincena","Visita"]} value={form.plan} onChange={handleFieldChange} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#374151", cursor: "pointer" }}>
+                <input type="checkbox" checked={form.incluyeInscripcion} onChange={() => handleCheckboxChange("incluyeInscripcion")} />
+                Incluye cuota de inscripción
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#374151", cursor: "pointer" }}>
+                <input type="checkbox" checked={form.promocionPagoPuntual} onChange={() => handleCheckboxChange("promocionPagoPuntual")} />
+                Aplica promoción por pago puntual
+              </label>
+            </div>
             <Field label="Dirección (calle y número)" name="direccion" value={form.direccion} onChange={handleFieldChange} />
             <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: "0 16px" }}>
               <Field label="Estado" name="estado" options={ESTADOS_MX as unknown as string[]} value={form.estado} onChange={handleFieldChange} />
@@ -637,7 +661,7 @@ export default function App() {
                   ["Teléfono", form.telefono],
                   ["Fecha de nacimiento", formatoFechaMX(form.fechaNacimiento)],
                   ["Municipio / Estado", `${form.municipio || "—"}, ${form.estado}`],
-                  ["Plan", form.plan],
+                  ["Plan", planLabel()],
                   ...(esMenor ? [["Tutor", `${form.tutorNombre} ${form.tutorApellido}`]] : []),
                   ["Términos aceptados", "✓ Sí"],
                 ].map(([l, v]) => (

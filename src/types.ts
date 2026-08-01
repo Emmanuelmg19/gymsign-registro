@@ -1,4 +1,4 @@
-export type Plan = "Mensual" | "Inscripción" | "Promoción por pago puntual" | "Semana" | "Quincena" | "Visita";
+export type Plan = "Mensual" | "Semana" | "Quincena" | "Visita";
 export type TipoIdentificacion = "INE" | "CURP" | "Pasaporte" | "Licencia" | "Visa";
 export type EstadoMX =
   | "Aguascalientes" | "Baja California" | "Baja California Sur" | "Campeche" | "Chiapas"
@@ -54,6 +54,8 @@ export interface Socio {
   telefono_emergencia: string | null;
   padecimiento: string | null;
   plan: Plan;
+  incluye_inscripcion: boolean;
+  promocion_pago_puntual: boolean;
   es_menor: boolean;
   tutor_id: string | null;
   firma_path: string | null;
